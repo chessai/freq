@@ -6,11 +6,41 @@ import Freq
 import Data.ByteString (ByteString, getLine)
 import Prelude hiding (FilePath, getLine)
 
-toby :: FilePath
-toby = "tests/toby.freq"
+trainTexts :: [FilePath]
+trainTexts
+  = fmap (\x -> "txtdocs/" ++ x ++ ".txt")
+      [ "2000010"
+      , "center_earth"
+      , "lesms10"
+      , "moon10"
+      , "time_machine"
+      , "2city10"
+      , "defoe-robinson-103"
+      , "london-call-203"
+      , "ozland10"
+      , "war_peace"
+      , "80day10"
+      , "dracula"
+      , "london-sea-206"
+      , "plgrm10"
+      , "white_fang"
+      , "alcott-little-261"
+      , "freck10"
+      , "longfellow-paul-210"
+      , "sawy210"
+      , "zenda10"
+      , "byron-don-315"
+      , "invisman"
+      , "madambov"
+      , "speckldb"
+      , "carol10"
+      , "kipling-jungle-148"
+      , "monroe-d"
+      , "swift-modest-171"
+      ]
 
 main :: IO Double
 main = do
   bs <- getLine
-  freak <- create [toby]
+  freak <- create trainTexts
   pure $ measure freak bs 

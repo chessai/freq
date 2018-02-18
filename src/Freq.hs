@@ -54,19 +54,19 @@ union a b = DMS.unionWith (DMS.unionWith (P.+)) a b
 defWeight :: Weight
 defWeight = 1.0
 
-{-# INLINE defProb #-}
-defProb :: Prob
-defProb = 40.0
+{-# INLINE maxDefProb #-}
+maxDefProb :: Prob
+maxDefProb = 1
 
 {-# INLINE measure #-}
 measure :: Freq       -- ^ Frequency table
-        -> ByteString -- ^ bytestring in question
+        -> BC.ByteString -- ^ bytestring in question
         -> Prob       -- ^ Probability that the bytestring is not randomised
-measure f !b = probability f b defProb
+measure f !b = probability f b maxDefProb
 
 {-# INLINE probability #-}
 probability :: Freq       -- ^ Frequency table
-            -> ByteString -- ^ bytestring in question
+            -> BC.ByteString -- ^ bytestring in question
             -> Prob       -- ^ Maximum probability that the bytestring is not randomised
             -> Prob       -- ^ Probability that the bytestring is not randomised
 probability _ (PS _ _ 0) _ = 0
@@ -75,7 +75,7 @@ probability f !b !prob = (go 0 l b) P./ (P.fromIntegral l)
     l :: Int
     l = BC.length b
 
-    go :: Int -> Int -> ByteString -> Double
+    go :: Int -> Int -> BC.ByteString -> Double
     go !p !q bs
       | p == q = 0
       | otherwise =
@@ -99,7 +99,7 @@ probInternal (Freq f) w1 w2 p =
 
 {-# INLINE ratio #-}
 ratio :: Prob -> Map Word8 Weight -> Prob
-ratio !p g = P.min p (100.0 P.* ((sum g) P./ (P.fromIntegral $ DMS.size g)))
+ratio !p g = P.min p ((sum g) P./ (P.fromIntegral $ DMS.size g))
 
 create :: [FilePath] -> IO Freq
 create paths = foldMapA createInternal' paths
@@ -111,14 +111,14 @@ createInternal' path = do
   pure $ tally text
 
 {-# INLINE tally' #-}
-tally' :: Weight -> ByteString -> Freq
+tally' :: Weight -> BC.ByteString -> Freq
 tally' _ (PS _ _ 0) = empty
 tally' !w !b = Freq $ go 0 l b
   where
     l :: Int
     l = BC.length b
 
-    go :: Int -> Int -> ByteString -> Tal
+    go :: Int -> Int -> BC.ByteString -> Tal
     go !p !q bs
       | p == q = DMS.empty
       | otherwise =
@@ -127,7 +127,7 @@ tally' !w !b = Freq $ go 0 l b
           in (freq $ singleton k r w) `union` (go (p P.+ 1) l bs)
 
 {-# INLINE tally #-}
-tally :: ByteString -> Freq
+tally :: BC.ByteString -> Freq
 tally !b = tally' defWeight b
 
 newtype Ap f a = Ap { getAp :: f a }
