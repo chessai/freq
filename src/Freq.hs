@@ -28,6 +28,8 @@ type Prob     = Double
 type FilePath = String
 type Tal      = Map Word8 (Map Word8 Weight)
 
+-- type Foo = (ByteArray, ByteArray, Metadata)
+
 newtype Freq = Freq { freq :: Tal }
 
 instance Semigroup Freq where
@@ -41,7 +43,7 @@ instance Monoid Freq where
   (Freq a) `mappend` (Freq b) = Freq $ union a b
 
 prettyFreq :: Freq -> IO ()
-prettyFreq (Freq m) = DMS.foldMapWithKey (\c1 m' -> P.putStrLn [w2c c1] >> DMS.foldMapWithKey (\c2 prob -> P.putStrLn ("  " ++ [w2c c2] ++ " " ++ P.show prob)) m') m
+prettyFreq (Freq m) = DMS.foldMapWithKey (\c1 m' -> P.putStrLn (if c1 == 10 then "\\n" else [w2c c1]) >> DMS.foldMapWithKey (\c2 prob -> P.putStrLn ("  " ++ [w2c c2] ++ " " ++ P.show prob)) m') m
 
 {-# INLINE empty #-}
 empty :: Freq
@@ -75,36 +77,37 @@ probability :: Freq          -- ^ Frequency table
             -> Prob          -- ^ Maximum probability that the bytestring is not randomised
             -> Prob          -- ^ Probability that the bytestring is not randomised
 probability _ (PS _ _ 0) _ = 0
-probability f !b !prob = (go 0 l b) / (P.fromIntegral l)
+probability _ (PS _ _ 1) _ = 0
+probability f !b !prob = (go 0 0) / (P.fromIntegral (BC.length b P.- 1))
   where
     l :: Int
-    l = BC.length b
+    l = BC.length b P.- 1
 
-    go :: Int -> Int -> BC.ByteString -> Double
-    go !p !q bs
-      | p == q = 0
+    go :: Int -> Double -> Double
+    go !p !acc
+      | p == l = acc
       | otherwise =
-          let k = BU.unsafeIndex bs p
-              r = BU.unsafeIndex bs (p + 1)
-          in probInternal f k r prob + go (p + 1) l bs 
+          let k = BU.unsafeIndex b p
+              r = BU.unsafeIndex b (p + 1)
+          in go (p + 1) (probInternal f k r prob + acc)
 
 {-# INLINE probInternal #-}
 probInternal :: Freq  -- ^ Frequency table
              -> Word8 -- ^ Character 1
              -> Word8 -- ^ Character 2
-             -> Prob  -- ^ Maximum probability that character 1 follows character 2
-             -> Prob  -- ^ Probability that character 1 follows character 2
+             -> Prob  -- ^ Maximum probability that character 2 follows character 1
+             -> Prob  -- ^ Probability that character 2 follows character 1
 probInternal (Freq f) w1 w2 p =
   case DMS.lookup w1 f of
     Nothing -> 0
-    Just g  ->
+    Just g ->
       case DMS.lookup w2 g of
         Nothing -> 0
-        Just _  -> ratio p g
+        Just weight -> ratio p weight g
 
 {-# INLINE ratio #-}
-ratio :: Prob -> Map Word8 Weight -> Prob
-ratio !p g = P.min p ((sum g) / (P.fromIntegral $ DMS.size g))
+ratio :: Prob -> Weight -> Map Word8 Weight -> Prob
+ratio !p !weight g = P.min p (weight / sum g)
 
 create :: [FilePath] -> IO Freq
 create !paths = foldMapA createInternal' paths
@@ -118,18 +121,18 @@ createInternal' !path = do
 {-# INLINE tally' #-}
 tally' :: Weight -> BC.ByteString -> Freq
 tally' _ (PS _ _ 0) = empty
-tally' !w !b = Freq $ go 0 (P.max 0 l) b
+tally' !w !b = go 0 mempty
   where
     l :: Int
     l = BC.length b P.- 1
 
-    go :: Int -> Int -> BC.ByteString -> Tal
-    go !p !q bs
-      | p == q = DMS.empty
+    go :: Int -> Freq -> Freq
+    go !p !fr
+      | p == l = fr
       | otherwise =
-          let k = BU.unsafeIndex bs p
-              r = BU.unsafeIndex bs (p + 1)
-          in (freq $ singleton k r w) `union` (go (p + 1) l bs)
+          let k = BU.unsafeIndex b p
+              r = BU.unsafeIndex b (p + 1)
+          in go (p + 1) (mappend (singleton k r w) fr)
 
 {-# INLINE tally #-}
 tally :: BC.ByteString -> Freq
