@@ -3,7 +3,7 @@
 module Main (main) where
 
 import Freq
-import Data.ByteString (ByteString, getLine)
+import Data.ByteString.Char8 (ByteString, getLine)
 import Prelude hiding (FilePath, getLine)
 
 trainTexts :: [FilePath]
@@ -39,8 +39,11 @@ trainTexts
       , "swift-modest-171"
       ]
 
-main :: IO Double
+main :: IO ()
+--Double
 main = do
-  bs <- getLine
   freak <- create trainTexts
-  pure $ measure freak bs 
+  prettyFreq freak 
+  
+  --bs <- getLine 
+  --pure $ measure freak bs 

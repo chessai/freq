@@ -7,7 +7,8 @@
 module Freq where
 
 import Control.Applicative (Applicative(..))
-import Data.ByteString.Internal (ByteString(..))
+import Control.Monad ((>>))
+import Data.ByteString.Internal (ByteString(..), w2c)
 import Data.Foldable
 import Data.Map.Strict (Map)
 import Data.Monoid
@@ -20,6 +21,7 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Unsafe as BU
 import qualified Data.Map.Strict as DMS
 import qualified Prelude as P
+import Prelude ( (+), (/) )
 
 type Weight   = Double
 type Prob     = Double
@@ -38,6 +40,9 @@ instance Monoid Freq where
   {-# INLINE mappend #-} 
   (Freq a) `mappend` (Freq b) = Freq $ union a b
 
+prettyFreq :: Freq -> IO ()
+prettyFreq (Freq m) = DMS.foldMapWithKey (\c1 m' -> P.putStrLn [w2c c1] >> DMS.foldMapWithKey (\c2 prob -> P.putStrLn ("  " ++ [w2c c2] ++ " " ++ P.show prob)) m') m
+
 {-# INLINE empty #-}
 empty :: Freq
 empty = Freq DMS.empty
@@ -48,7 +53,7 @@ singleton k ka w = Freq $ DMS.singleton k (DMS.singleton ka w)
 
 {-# INLINE union #-}
 union :: Tal -> Tal -> Tal
-union a b = DMS.unionWith (DMS.unionWith (P.+)) a b
+union a b = DMS.unionWith (DMS.unionWith (+)) a b
 
 {-# INLINE defWeight #-}
 defWeight :: Weight
@@ -59,18 +64,18 @@ maxDefProb :: Prob
 maxDefProb = 1
 
 {-# INLINE measure #-}
-measure :: Freq       -- ^ Frequency table
+measure :: Freq          -- ^ Frequency table
         -> BC.ByteString -- ^ bytestring in question
-        -> Prob       -- ^ Probability that the bytestring is not randomised
+        -> Prob          -- ^ Probability that the bytestring is not randomised
 measure f !b = probability f b maxDefProb
 
 {-# INLINE probability #-}
-probability :: Freq       -- ^ Frequency table
+probability :: Freq          -- ^ Frequency table
             -> BC.ByteString -- ^ bytestring in question
-            -> Prob       -- ^ Maximum probability that the bytestring is not randomised
-            -> Prob       -- ^ Probability that the bytestring is not randomised
+            -> Prob          -- ^ Maximum probability that the bytestring is not randomised
+            -> Prob          -- ^ Probability that the bytestring is not randomised
 probability _ (PS _ _ 0) _ = 0
-probability f !b !prob = (go 0 l b) P./ (P.fromIntegral l)
+probability f !b !prob = (go 0 l b) / (P.fromIntegral l)
   where
     l :: Int
     l = BC.length b
@@ -80,8 +85,8 @@ probability f !b !prob = (go 0 l b) P./ (P.fromIntegral l)
       | p == q = 0
       | otherwise =
           let k = BU.unsafeIndex bs p
-              r = BU.unsafeIndex bs (p P.+ 1)
-          in probInternal f k r prob P.+ go (p P.+ 1) l bs 
+              r = BU.unsafeIndex bs (p + 1)
+          in probInternal f k r prob + go (p + 1) l bs 
 
 {-# INLINE probInternal #-}
 probInternal :: Freq  -- ^ Frequency table
@@ -99,14 +104,14 @@ probInternal (Freq f) w1 w2 p =
 
 {-# INLINE ratio #-}
 ratio :: Prob -> Map Word8 Weight -> Prob
-ratio !p g = P.min p ((sum g) P./ (P.fromIntegral $ DMS.size g))
+ratio !p g = P.min p ((sum g) / (P.fromIntegral $ DMS.size g))
 
 create :: [FilePath] -> IO Freq
-create paths = foldMapA createInternal' paths
+create !paths = foldMapA createInternal' paths
 
 {-# INLINE createInternal' #-}
 createInternal' :: FilePath -> IO Freq
-createInternal' path = do
+createInternal' !path = do
   text <- BC.readFile path
   pure $ tally text
 
@@ -123,8 +128,8 @@ tally' !w !b = Freq $ go 0 l b
       | p == q = DMS.empty
       | otherwise =
           let k = BU.unsafeIndex bs p
-              r = BU.unsafeIndex bs (p P.+ 1)
-          in (freq $ singleton k r w) `union` (go (p P.+ 1) l bs)
+              r = BU.unsafeIndex bs (p + 1)
+          in (freq $ singleton k r w) `union` (go (p + 1) l bs)
 
 {-# INLINE tally #-}
 tally :: BC.ByteString -> Freq

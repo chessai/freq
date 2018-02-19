@@ -32,7 +32,6 @@ let
         doCheck = pkgs.lib.elem args.pname [ "freq" ]; 
         doHaddock = false;
       });
-      
       freq = build "freq" ./.;
     };
   };
