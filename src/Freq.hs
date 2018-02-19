@@ -118,10 +118,10 @@ createInternal' !path = do
 {-# INLINE tally' #-}
 tally' :: Weight -> BC.ByteString -> Freq
 tally' _ (PS _ _ 0) = empty
-tally' !w !b = Freq $ go 0 l b
+tally' !w !b = Freq $ go 0 (P.max 0 l) b
   where
     l :: Int
-    l = BC.length b
+    l = BC.length b P.- 1
 
     go :: Int -> Int -> BC.ByteString -> Tal
     go !p !q bs
