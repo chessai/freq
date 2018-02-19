@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main (main) where
@@ -5,6 +6,7 @@ module Main (main) where
 import Freq
 import Data.ByteString.Char8 (ByteString, getLine)
 import Prelude hiding (FilePath, getLine)
+import Control.Monad (forever)
 
 trainTexts :: [FilePath]
 trainTexts
@@ -42,8 +44,10 @@ trainTexts
 main :: IO ()
 --Double
 main = do
-  freak <- create trainTexts
-  prettyFreq freak 
-  
-  --bs <- getLine 
-  --pure $ measure freak bs 
+  !freak <- create trainTexts
+  putStrLn "done loading frequencies"
+  -- prettyFreq freak 
+  forever $ do
+    putStrLn "Enter sample text:"
+    bs <- getLine 
+    putStrLn ("Score: " ++ show (measure freak bs))
