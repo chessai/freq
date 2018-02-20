@@ -5,7 +5,7 @@ module Main (main) where
 
 import Freq
 import Data.ByteString.Char8 (ByteString, getLine)
-import Prelude hiding (FilePath, getLine)
+import Prelude hiding (getLine)
 import Control.Monad (forever)
 
 trainTexts :: [FilePath]
@@ -42,9 +42,8 @@ trainTexts
       ]
 
 main :: IO ()
---Double
 main = do
-  !freak <- create trainTexts
+  !freak <- createMany trainTexts
   putStrLn "done loading frequencies"
   -- prettyFreq freak 
   forever $ do
