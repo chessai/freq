@@ -5,7 +5,7 @@ let
     rev = "01705125314fa0c7753f27c3dd7c4bfbda55c375"; 
     sha256 = "1a96vb4hlhnadm445lifq02wg2vz0a2hyxrcl6d0jy2cn7427aq6"; 
   };
-  pkgs = import nixpkgs { config = {}; };
+  pkgs = import nixpkgs { config = {}; overlays = []; };
   inherit (pkgs) haskell;
 
   
@@ -26,13 +26,11 @@ let
     with { cp = file: (self.callPackage (./nix/haskell + "/${file}.nix") {}); 
            build = name: path: self.callCabal2nix name (builtins.filterSource filterPredicate path) {}; 
          };
-
     {
-      mkDerivation = args: super.mkDerivation (args // {
-        doCheck = pkgs.lib.elem args.pname [ "freq" ]; 
+      freq = overrideCabal (build "freq" ./.) (drv: {
+        doCheck = true;
         doHaddock = false;
       });
-      freq = build "freq" ./.;
     };
   };
 in rec {
