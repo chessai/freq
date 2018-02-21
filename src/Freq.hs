@@ -6,7 +6,7 @@
 
 module Freq 
   ( -- * Frequency table type
-    Freq(..)
+    Freq
     
     -- * Construction
   , empty 
@@ -15,8 +15,8 @@ module Freq
     -- * Training
   , tally
   , tallyWeighted
-  , create
-  , createMany
+  , createWith
+  , createWithMany
   , defWeight
     
     -- * Using a trained model
@@ -33,7 +33,7 @@ import Control.Applicative (Applicative(..))
 import Control.Monad ((>>))
 import Data.ByteString.Internal (ByteString(..), w2c)
 import Data.Foldable
-import Data.Map.Strict.Internal (Map(..))
+import Data.Map.Strict.Internal (Map)
 import Data.Monoid
 import Data.Semigroup
 import Data.Word (Word8)
@@ -46,6 +46,8 @@ import qualified Prelude as P
 import Prelude (FilePath, (+), (-), (/))
 
 -- | A 'Freq' is a digram-based frequency table.
+--   @'mappend == <>'@ will add the values of each
+--   of the matching keys.
 newtype Freq = Freq { freq :: Map Word8 (Map Word8 Double) }
 
 instance Semigroup Freq where
@@ -83,7 +85,9 @@ singleton k ka w = Freq $ DMS.singleton k (DMS.singleton ka w)
 --   by your training data.
 --   For a version that lets you specify a maximum probability
 --   that can be returned from this operation, see 'measureWeighted'.
-measure :: Freq -> BC.ByteString -> Double
+measure :: Freq          -- ^ Frequency table
+        -> BC.ByteString -- ^ ByteString in question
+        -> Double        -- ^ Probability that the ByteString is not randomised
 measure f !b = measureWeighted f b maxDefProb
 {-# INLINE measure #-}
 
@@ -93,7 +97,10 @@ measure f !b = measureWeighted f b maxDefProb
 --   probability that this function can return for a given
 --   ByteString. For a version that uses a default maximum
 --   probability, see 'measure'.
-measureWeighted :: Freq -> BC.ByteString -> Double -> Double
+measureWeighted :: Freq          -- ^ Frequency table
+                -> BC.ByteString -- ^ ByteString in question
+                -> Double        -- ^ Maximum probability that the ByteString is not randomised
+                -> Double        -- ^ Probability that the ByteString is not randomised
 measureWeighted _ (PS _ _ 0) _ = 0
 measureWeighted _ (PS _ _ 1) _ = 0
 measureWeighted f !b !prob = (go 0 0) / (P.fromIntegral (BC.length b - 1))
@@ -114,7 +121,11 @@ measureWeighted f !b !prob = (go 0 0) / (P.fromIntegral (BC.length b - 1))
 --   what is the probability that 'c1' follows 'c2'?
 --   'probDigram' allows you to specify a maximum probability
 --   that this function can return.
-probDigram :: Freq -> Word8 -> Word8 -> Double -> Double 
+probDigram :: Freq   -- ^ Frequency table
+           -> Word8  -- ^ Char 1
+           -> Word8  -- ^ Char 2
+           -> Double -- ^ Maximum probability that Char 2 follows Char 1
+           -> Double -- ^ Probability that Char 2 follows Char 1 
 probDigram (Freq f) w1 w2 p =
   case DMS.lookup w1 f of
     Nothing -> 0
@@ -125,22 +136,26 @@ probDigram (Freq f) w1 w2 p =
 {-# INLINE probDigram #-}
 
 -- | Build multiple Frequency tables inside of the IO monad.
-createMany :: [FilePath] -> IO Freq
-createMany !paths = foldMapA create paths
-{-# INLINE createMany #-}
+createWithMany :: [FilePath] -- ^ List of filepaths containing training data
+           -> IO Freq    -- ^ Frequency table generated as a result of training, inside of IO.
+createWithMany !paths = foldMapA createWith paths
+{-# INLINE createWithMany #-}
 
 -- | Build a Frequency table inside of the IO monad.
-create :: FilePath -> IO Freq
-create !path = do
+createWith :: FilePath -- ^ Filepath containing training data
+       -> IO Freq  -- ^ Frequency table generated as a result of training, inside of IO.
+createWith !path = do
   text <- BC.readFile path
   pure $ tally text
-{-# INLINE create #-}
+{-# INLINE createWith #-}
 
 -- | Build a frequency table from a ByteString.
 --   As a first argument it takes a weight, that it
 --   assigns to character. For a version that uses
 --   a default weight, see 'tally'.
-tallyWeighted :: Double -> BC.ByteString -> Freq
+tallyWeighted :: Double        -- ^ Maximum weight to assign a single Char
+              -> BC.ByteString -- ^ ByteString with which the Frequency table will be built
+              -> Freq          -- ^ Resulting Frequency table.
 tallyWeighted _ (PS _ _ 0) = empty
 tallyWeighted !w !b = go 0 mempty
   where
@@ -159,7 +174,8 @@ tallyWeighted !w !b = go 0 mempty
 -- | Build a frequency table from a ByteString.
 --   For a version that lets you specify a weight to
 --   assign to each character, see 'tallyWeighted'.
-tally :: BC.ByteString -> Freq
+tally :: BC.ByteString -- ^ ByteString with which the Frequency table will be built.
+      -> Freq          -- ^ Resulting Frequency table.
 tally !b = tallyWeighted defWeight b
 {-# INLINE tally #-}
 
