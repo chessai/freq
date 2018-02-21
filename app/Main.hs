@@ -43,7 +43,7 @@ trainTexts
 
 main :: IO ()
 main = do
-  !freak <- createMany trainTexts
+  !freak <- foldMap createWith trainTexts
   putStrLn "done loading frequencies"
   -- prettyFreq freak 
   forever $ do
