@@ -193,7 +193,7 @@ probDigram (Freq f) w1 w2 =
 -- | Build a Frequency table from data contained within multiple files inside of the IO monad.
 createWithMany :: [FilePath] -- ^ List of filepaths containing training data
                -> IO Freq    -- ^ Frequency table generated as a result of training, inside of IO.
-createWithMany !paths = foldMapA createWith paths
+createWithMany !paths = foldMap createWith paths
 {-# INLINE createWithMany #-}
 
 -- | Build a Frequency table inside of the IO monad.
@@ -261,14 +261,3 @@ type Tal = Map Word8 (Map Word8 Double)
 union :: Tal -> Tal -> Tal
 union a b = DMS.unionWith (DMS.unionWith (+)) a b
 {-# INLINE union #-}
-
-newtype Ap f a = Ap { getAp :: f a }
-
-instance (Applicative f, Monoid a) => Monoid (Ap f a) where
-  {-# INLINE mempty #-} 
-  mempty = Ap $ pure mempty
-  {-# INLINE mappend #-} 
-  mappend (Ap x) (Ap y) = Ap $ liftA2 mappend x y
-
-foldMapA :: (Foldable t, Monoid m, Applicative f) => (a -> f m) -> t a -> f m
-foldMapA f = getAp . foldMap (Ap . f)
