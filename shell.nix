@@ -1,5 +1,5 @@
 { package ? "freq", compiler ? "ghc822" }:
 
-(import ./default.nix {
+(import ./nix/default.nix {
   inherit package compiler;
 }).freq

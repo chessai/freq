@@ -3,7 +3,7 @@
 
 module Main (main) where
 
-import Data.Freq
+import Freq.Digram
 import Control.Monad (forever)
 import qualified Data.ByteString.Char8 as BC (getLine)
 

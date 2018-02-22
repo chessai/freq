@@ -1,6 +1,6 @@
 { package ? "freq", compiler ? "ghc822" }:
 let
-  fetchNixpkgs = import ./nix/fetchNixpkgs.nix;
+  fetchNixpkgs = import ./fetchNixpkgs.nix;
   nixpkgs = fetchNixpkgs {
     rev = "01705125314fa0c7753f27c3dd7c4bfbda55c375"; 
     sha256 = "1a96vb4hlhnadm445lifq02wg2vz0a2hyxrcl6d0jy2cn7427aq6"; 
@@ -23,11 +23,11 @@ let
   overrides = haskell.packages.${compiler}.override {
     overrides = self: super:
     with haskell.lib;
-    with { cp = file: (self.callPackage (./nix/haskell + "/${file}.nix") {}); 
+    with { cp = file: (self.callPackage (./haskell + "/${file}.nix") {}); 
            build = name: path: self.callCabal2nix name (builtins.filterSource filterPredicate path) {}; 
          };
     {
-      freq = overrideCabal (build "freq" ./.) (drv: {
+      freq = overrideCabal (build "freq" ./..) (drv: {
         doCheck = true;
         doHaddock = false;
       });

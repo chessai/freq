@@ -5,7 +5,7 @@
 
 {-# OPTIONS_GHC -O2 -Wall #-}
 
-module Data.Freq 
+module Freq.Digram
   ( -- * Frequency table type
     Freq
   , FreqTable
