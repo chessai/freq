@@ -5,7 +5,7 @@
 
 {-# OPTIONS_GHC -O2 -Wall #-}
 
-module Freq 
+module Data.Freq 
   ( -- * Frequency table type
     Freq
   , FreqTable
@@ -26,7 +26,6 @@ module Freq
   , probDigram 
   , probDigramTable
   , measure
-  , measureWeighted
   , maxDefProb
 
     -- * Pretty Printing
@@ -75,20 +74,22 @@ instance Monoid Freq where
 --   is optimised for reads. There are no operations that
 --   append additional information to a 'FreqTable'.
 data FreqTable = FreqTable
-  {-# UNPACK #-} !Int -- Width and height of square 2d array
-  {-# UNPACK #-} !ByteArray -- Square two-dimensional array of Double, maps first char and second char to probability
-  {-# UNPACK #-} !ByteArray -- Array of Word8, length 256, acts as map from Word8 to table row/column index
+  {-# UNPACK #-} !Int       -- ^ Width and height of square 2d array
+  {-# UNPACK #-} !ByteArray -- ^ Square two-dimensional array of Double, maps first char and second char to probability
+  {-# UNPACK #-} !ByteArray -- ^ Array of Word8, length 256, acts as map from Word8 to table row/column index
 
 word8ToInt :: Word8 -> Int
 word8ToInt = P.fromIntegral
+{-# INLINE word8ToInt #-}
 
 intToWord8 :: Int -> Word8
 intToWord8 = P.fromIntegral
+{-# INLINE intToWord8 #-}
 
 probDigramTable ::
-     FreqTable -- Frequency table
-  -> Word8 -- First character
-  -> Word8 -- Second character
+     FreqTable -- ^ Frequency table
+  -> Word8     -- ^ First character
+  -> Word8     -- ^ Second character
   -> Double
 probDigramTable (FreqTable sz square ixs) chrFst chrSnd =
   let !ixFst = word8ToInt (PM.indexByteArray ixs (word8ToInt chrFst))
@@ -115,7 +116,7 @@ tabulate (Freq m) = runST comp where
           then do
             PM.writeByteArray square i (0 :: Double)
             fillSquare (i + 1)
-          else return ()
+          else pure ()
     fillSquare 0
     PM.fillByteArray ixs 0 256 (intToWord8 sz)
     forM_ ixedChars $ \(ixFst,w8Fst) -> do
@@ -124,11 +125,11 @@ tabulate (Freq m) = runST comp where
         let r = fromMaybe 0 $ do
               (total, m'') <- DMS.lookup w8Fst m'
               v <- DMS.lookup w8Snd m''
-              return (v / total)
+              pure (v / total)
         PM.writeByteArray square (sz * ixFst + ixSnd) r
     frozenIxs <- PM.unsafeFreezeByteArray ixs
     frozenSquare <- PM.unsafeFreezeByteArray square
-    return (FreqTable sz frozenSquare frozenIxs)
+    pure (FreqTable sz frozenSquare frozenIxs)
 
 -- | Pretty-print a Frequency table.
 prettyFreq :: Freq -> IO ()
@@ -158,22 +159,9 @@ singleton k ka w = Freq $ DMS.singleton k (DMS.singleton ka w)
 measure :: Freq          -- ^ Frequency table
         -> BC.ByteString -- ^ ByteString in question
         -> Double        -- ^ Probability that the ByteString is not randomised
-measure f !b = measureWeighted f b maxDefProb
-{-# INLINE measure #-}
-
--- | Calculates the probability that a given ByteString is
---   nonrandom given a Frequency table. As an additional
---   argument, 'measureWeighted' lets you specify a maximum
---   probability that this function can return for a given
---   ByteString. For a version that uses a default maximum
---   probability, see 'measure'.
-measureWeighted :: Freq          -- ^ Frequency table
-                -> BC.ByteString -- ^ ByteString in question
-                -> Double        -- ^ Maximum probability that the ByteString is not randomised
-                -> Double        -- ^ Probability that the ByteString is not randomised
-measureWeighted _ (PS _ _ 0) _ = 0
-measureWeighted _ (PS _ _ 1) _ = 0
-measureWeighted f !b !prob = (go 0 0) / (P.fromIntegral (BC.length b - 1))
+measure _ (PS _ _ 0) = 0
+measure _ (PS _ _ 1) = 0
+measure f !b         = (go 0 0) / (P.fromIntegral (BC.length b - 1))
   where
     l :: Int
     l = BC.length b - 1
@@ -184,39 +172,34 @@ measureWeighted f !b !prob = (go 0 0) / (P.fromIntegral (BC.length b - 1))
       | otherwise =
           let k = BU.unsafeIndex b p
               r = BU.unsafeIndex b (p + 1)
-          in go (p + 1) (probDigram f k r prob + acc)
-{-# INLINE measureWeighted #-}
+          in go (p + 1) (probDigram f k r + acc)
+{-# INLINE measure #-}
 
 -- | Given a Frequency table and characters 'c1' and 'c2',
 --   what is the probability that 'c1' follows 'c2'?
---   'probDigram' allows you to specify a maximum probability
---   that this function can return.
 probDigram :: Freq   -- ^ Frequency table
            -> Word8  -- ^ Char 1
            -> Word8  -- ^ Char 2
-           -> Double -- ^ Maximum probability that Char 2 follows Char 1
            -> Double -- ^ Probability that Char 2 follows Char 1 
-probDigram (Freq f) w1 w2 p =
+probDigram (Freq f) w1 w2 =
   case DMS.lookup w1 f of
     Nothing -> 0
     Just g ->
       case DMS.lookup w2 g of
         Nothing -> 0
-        Just weight -> ratio p weight g
+        Just weight -> ratio weight g
 {-# INLINE probDigram #-}
 
--- | Build multiple Frequency tables inside of the IO monad.
+-- | Build a Frequency table from data contained within multiple files inside of the IO monad.
 createWithMany :: [FilePath] -- ^ List of filepaths containing training data
-           -> IO Freq    -- ^ Frequency table generated as a result of training, inside of IO.
+               -> IO Freq    -- ^ Frequency table generated as a result of training, inside of IO.
 createWithMany !paths = foldMapA createWith paths
 {-# INLINE createWithMany #-}
 
 -- | Build a Frequency table inside of the IO monad.
 createWith :: FilePath -- ^ Filepath containing training data
-       -> IO Freq  -- ^ Frequency table generated as a result of training, inside of IO.
-createWith !path = do
-  text <- BC.readFile path
-  pure $ tally text
+           -> IO Freq  -- ^ Frequency table generated as a result of training, inside of IO.
+createWith !path = BC.readFile path >>= (pure . tally)
 {-# INLINE createWith #-}
 
 -- | Build a frequency table from a ByteString.
@@ -265,8 +248,8 @@ maxDefProb = 1.0
   Internal Section
 --------------------------------------------------------------------}
 
-ratio :: Double -> Double -> Map Word8 Double -> Double
-ratio !p !weight g = P.min p (weight / sum g)
+ratio :: Double -> Map Word8 Double -> Double
+ratio !weight g = weight / (sum g)
 {-# INLINE ratio #-}
 
 -- A convenience type synonym for internal use.

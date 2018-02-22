@@ -3,10 +3,9 @@
 
 module Main (main) where
 
-import Freq
-import Data.ByteString.Char8 (ByteString, getLine)
-import Prelude hiding (getLine)
+import Data.Freq
 import Control.Monad (forever)
+import qualified Data.ByteString.Char8 as BC (getLine)
 
 trainTexts :: [FilePath]
 trainTexts
@@ -43,10 +42,9 @@ trainTexts
 
 main :: IO ()
 main = do
-  !freak <- foldMap createWith trainTexts
+  !freak <- createWithMany trainTexts
   putStrLn "done loading frequencies"
-  -- prettyFreq freak 
   forever $ do
     putStrLn "Enter sample text:"
-    bs <- getLine 
+    !bs <- BC.getLine 
     putStrLn ("Score: " ++ show (measure freak bs))
