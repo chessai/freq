@@ -26,7 +26,6 @@ module Data.Freq
   , probDigram 
   , probDigramTable
   , measure
-  , maxDefProb
 
     -- * Pretty Printing
   , prettyFreq
@@ -154,8 +153,6 @@ singleton k ka w = Freq $ DMS.singleton k (DMS.singleton ka w)
 --   it is less random, while a lower probability indicates
 --   a higher degree of randomness. This is heavily affected
 --   by your training data.
---   For a version that lets you specify a maximum probability
---   that can be returned from this operation, see 'measureWeighted'.
 measure :: Freq          -- ^ Frequency table
         -> BC.ByteString -- ^ ByteString in question
         -> Double        -- ^ Probability that the ByteString is not randomised
@@ -237,12 +234,6 @@ tally !b = tallyWeighted defWeight b
 defWeight :: Double
 defWeight = 1.0
 {-# INLINE defWeight #-}
-
--- | Default maximum probability that a digram can have as probable.
---   This is just @1.0@.
-maxDefProb :: Double
-maxDefProb = 1.0
-{-# INLINE maxDefProb #-}
 
 {--------------------------------------------------------------------
   Internal Section
