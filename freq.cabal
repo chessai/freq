@@ -14,7 +14,7 @@ bug-reports:               https://github.com/chessai/freq/issues
 --synopsis:                  
 --description:               
 extra-source-files:        README.md
-tested-with:               GHC == 8.2.1, GHC == 8.2.2
+tested-with:               GHC == 8.2.1, GHC == 8.2.2, GHC == 8.4.1, GHC == 8.4.2
 
 ---------------------------------------------------------------------
 
@@ -34,7 +34,20 @@ library
                            Freq.Digram.Builder 
                            Freq.Digram.Internal 
     default-language:      Haskell2010
-                       
+
+test-suite test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    test
+  build-depends:
+      base >=4.7 && <5
+    , bytestring 
+    , containers
+    , freq
+    , hedgehog 
+  default-language: Haskell2010
+
 executable freq-train
     hs-source-dirs:        app
     build-depends:         base, freq, bytestring, containers

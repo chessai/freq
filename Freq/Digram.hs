@@ -1,8 +1,3 @@
-{-# language BangPatterns #-}
-{-# language MagicHash    #-}
-{-# language NoImplicitPrelude #-}
-{-# language ScopedTypeVariables #-}
-
 {-# OPTIONS_GHC -O2 -Wall #-}
 
 module Freq.Digram
@@ -15,7 +10,6 @@ module Freq.Digram
     
     -- * Training
   , tally
-  , tallyWeighted
   , createWith
   , createWithMany
   , defWeight

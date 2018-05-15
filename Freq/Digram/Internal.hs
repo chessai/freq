@@ -15,7 +15,6 @@ module Freq.Digram.Internal
     
     -- * Training
   , tally
-  , tallyWeighted
   , createWith
   , createWithMany
   , defWeight
@@ -61,7 +60,12 @@ instance Monoid Freq where
 
 -- | Pretty-print a Frequency table.
 prettyFreq :: Freq -> IO ()
-prettyFreq (Freq m) = DMS.foldMapWithKey (\c1 m' -> P.putStrLn (if c1 == 10 then "\\n" else [w2c c1]) >> DMS.foldMapWithKey (\c2 prob -> P.putStrLn ("  " ++ [w2c c2] ++ " " ++ P.show (P.round prob :: Int))) m') m
+prettyFreq (Freq m)
+  = DMS.foldMapWithKey
+      (\c1 m' ->
+         P.putStrLn (if c1 == 10 then "\\n" else [w2c c1])
+           >> DMS.foldMapWithKey
+               (\c2 prob -> P.putStrLn ("  " ++ [w2c c2] ++ " " ++ P.show (P.round prob :: Int))) m') m
 
 -- | /O(1)/. The empty frequency table.
 empty :: Freq
@@ -129,14 +133,10 @@ createWith !path = BC.readFile path >>= (pure . tally)
 {-# INLINE createWith #-}
 
 -- | Build a frequency table from a ByteString.
---   As a first argument it takes a weight, that it
---   assigns to character. For a version that uses
---   a default weight, see 'tally'.
-tallyWeighted :: Double        -- ^ Maximum weight to assign a single Char
-              -> BC.ByteString -- ^ ByteString with which the Frequency table will be built
-              -> Freq          -- ^ Resulting Frequency table.
-tallyWeighted _ (PS _ _ 0) = empty
-tallyWeighted !w !b = go 0 mempty
+tally :: BC.ByteString -- ^ ByteString with which the Freq will be built
+      -> Freq          -- ^ Resulting Freq
+tally (PS _ _ 0) = empty
+tally !b = go 0 mempty
   where
     l :: Int
     l = BC.length b - 1
@@ -147,16 +147,7 @@ tallyWeighted !w !b = go 0 mempty
       | otherwise =
           let k = BU.unsafeIndex b p
               r = BU.unsafeIndex b (p + 1)
-          in go (p + 1) (mappend (singleton k r w) fr)
-{-# INLINE tallyWeighted #-}
-
--- | Build a frequency table from a ByteString.
---   For a version that lets you specify a weight to
---   assign to each character, see 'tallyWeighted'.
-tally :: BC.ByteString -- ^ ByteString with which the Frequency table will be built.
-      -> Freq          -- ^ Resulting Frequency table.
-tally !b = tallyWeighted defWeight b
-{-# INLINE tally #-}
+          in go (p + 1) (mappend (singleton k r 1) fr)
 
 -- | Default weight associated with each character.
 --   This is just @1.0@.
@@ -174,7 +165,10 @@ ratio !weight g = weight / (sum g)
 
 -- A convenience type synonym for internal use.
 -- Please /do not/ ask me to rename this to "Tally".
--- It is named after Mikhail Tal.
+-- https://github.com/andrewthad did this.
+-- He is no longer permitted to leave the cave.
+--
+-- Tal is named after Mikhail Tal.
 type Tal = Map Word8 (Map Word8 Double)
 
 -- union two 'Tal', summing the weights belonging to the same keys.

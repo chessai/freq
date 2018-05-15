@@ -13,26 +13,29 @@ module Freq.Digram.Builder
     
     -- * Using a trained model
   , probDigramTable
-  --, measureTable
+  , measureTable
   ) where
 
 import Control.Applicative (Applicative(..))
 import Control.Monad.ST (ST,runST)
+import Data.ByteString.Internal (ByteString(..))
 import Data.Foldable
 import Data.Map.Strict.Internal (Map)
 import Data.Maybe (fromMaybe)
 import Data.Primitive (ByteArray)
 import Data.Set (Set)
 import Data.Word (Word8)
-import GHC.Base hiding (empty)
 import Freq.Digram.Internal
+import GHC.Base hiding (empty)
+import Prelude ((+), (-), (/), (*))
 
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.ByteString.Unsafe as BU
 import qualified Data.Map.Strict as DMS
 import qualified Data.Primitive as PM
 import qualified Data.Set as S
 import qualified GHC.OldList as L
 import qualified Prelude as P
-import Prelude ((+), (/), (*))
 
 -- | A variant of 'Freq' that holds identical information but
 --   is optimised for reads. There are no operations that
@@ -59,6 +62,24 @@ probDigramTable (FreqTable sz square ixs) chrFst chrSnd =
   let !ixFst = word8ToInt (PM.indexByteArray ixs (word8ToInt chrFst))
       !ixSnd = word8ToInt (PM.indexByteArray ixs (word8ToInt chrSnd))
    in PM.indexByteArray square (sz * ixFst + ixSnd)
+
+measureTable :: FreqTable
+             -> BC.ByteString
+             -> Double
+measureTable _ (PS _ _ 0) = 0
+measureTable _ (PS _ _ 1) = 1
+measureTable f !b         = go 0 0 / (P.fromIntegral (BC.length b - 1))
+  where
+    l :: Int
+    !l = BC.length b - 1
+
+    go :: Int -> Double -> Double
+    go !p !acc
+      | p == l = acc
+      | otherwise =
+          let k = BU.unsafeIndex b p
+              r = BU.unsafeIndex b (p + 1)
+          in go (p + 1) (probDigramTable f k r + acc)
 
 -- | Optimise a 'Freq' for read access.
 tabulate :: Freq -> FreqTable
