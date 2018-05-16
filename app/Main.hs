@@ -42,7 +42,7 @@ trainTexts
 
 main :: IO ()
 main = do
-  !freak <- createWithMany trainTexts
+  !freak <- trainWithMany trainTexts
   putStrLn "done loading frequencies"
   forever $ do
     putStrLn "Enter sample text:"

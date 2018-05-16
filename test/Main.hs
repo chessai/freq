@@ -7,7 +7,6 @@ import Control.Monad (forever)
 import Data.ByteString (ByteString)
 import Data.Word (Word8)
 import Freq.Digram
-import Freq.Digram.Builder
 import Hedgehog
 import qualified Data.ByteString as B
 import qualified Hedgehog.Gen as Gen
@@ -15,7 +14,7 @@ import qualified Hedgehog.Range as Range
 
 main :: IO Bool
 main = do
-  !freak <- createWithMany trainTexts
+  !freak <- trainWithMany trainTexts
   let !freakTable = tabulate freak
   Prelude.putStrLn "done loading frequencies"
   Prelude.putStrLn "now testing with Hedgehog"
@@ -71,4 +70,4 @@ prop_Equal :: Freq -> FreqTable -> Property
 prop_Equal f ft =
   property $ do
     b <- forAll $ Gen.sized sizedByteString 
-    measure f b === measureTable ft b
+    measure f b === measure ft b

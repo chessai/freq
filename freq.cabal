@@ -31,7 +31,6 @@ library
                          , containers 
                          , primitive >= 0.6.1
     exposed-modules:       Freq.Digram
-                           Freq.Digram.Builder 
                            Freq.Digram.Internal 
     default-language:      Haskell2010
 

@@ -7,15 +7,17 @@ module Freq.Digram
     -- * Construction
   , empty 
   , singleton
-    
+
+  , tabulate
+
     -- * Training
-  , tally
-  , createWith
-  , createWithMany
-  , defWeight
+  , train 
+  , trainWith
+  , trainWithMany
     
     -- * Using a trained model
-  , probDigram 
+  , FreqTable 
+  , prob
   , measure
 
     -- * Pretty Printing
