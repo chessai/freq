@@ -6,7 +6,7 @@ module Main (main) where
 import Control.Monad (forever)
 import Data.ByteString (ByteString)
 import Data.Word (Word8)
-import Freq.Digram
+import Freq
 import Hedgehog
 import qualified Data.ByteString as B
 import qualified Hedgehog.Gen as Gen
@@ -26,33 +26,34 @@ trainTexts :: [FilePath]
 trainTexts
   = fmap (\x -> "txtdocs/" ++ x ++ ".txt")
       [ "2000010"
-      , "center_earth"
-      , "lesms10"
-      , "moon10"
-      , "time_machine"
       , "2city10"
-      , "defoe-robinson-103"
-      , "london-call-203"
-      , "ozland10"
-      , "war_peace"
       , "80day10"
-      , "dracula"
-      , "london-sea-206"
-      , "plgrm10"
-      , "white_fang"
       , "alcott-little-261"
-      , "freck10"
-      , "longfellow-paul-210"
-      , "sawy210"
-      , "zenda10"
       , "byron-don-315"
-      , "invisman"
-      , "madambov"
-      , "speckldb"
       , "carol10"
+      , "center_earth"
+      , "defoe-robinson-103"
+      , "dracula"
+      , "freck10"
+      , "invisman"
       , "kipling-jungle-148"
+      , "lesms10"
+      , "london-call-203"
+      , "london-sea-206"
+      , "longfellow-paul-210"
+      , "madambov"
       , "monroe-d"
+      , "moon10"
+      , "ozland10"
+      , "plgrm10"
+      , "sawy210"
+      , "speckldb"
       , "swift-modest-171"
+      , "time_machine"
+      , "top-1m" 
+      , "war_peace"
+      , "white_fang"
+      , "zenda10"
       ]
 
 epsilon :: Double
