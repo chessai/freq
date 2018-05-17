@@ -31,7 +31,7 @@ library
                          , bytestring 
                          , containers 
                          , gauge
-                         , primitive-checked >= 0.6.1
+                         , primitive >= 0.6.1
     exposed-modules:       Freq
                            Freq.Internal 
     default-language:      Haskell2010

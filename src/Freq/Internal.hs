@@ -37,7 +37,7 @@ module Freq.Internal
 --------------------------------------------------------------------------------
 
 import Control.Applicative (Applicative(..))
-import Control.Exception (throw, ArrayException(..))
+--import Control.Exception (throw, ArrayException(..))
 import Control.Monad ((>>))
 import Control.Monad.ST (ST,runST)
 import Data.ByteString.Internal (ByteString(..), w2c)
@@ -50,7 +50,7 @@ import Data.Semigroup
 import Data.Set (Set)
 import Data.Word (Word8)
 import GHC.Base hiding (empty)
-import GHC.Stack
+--import GHC.Stack
 import Prelude (FilePath, (+), (*), (-), (/), show, mod)
 
 import qualified Data.ByteString.Char8 as BC
@@ -208,6 +208,14 @@ data FreqTable = FreqTable
   {-# UNPACK #-} !ByteArray -- ^ Square two-dimensional array of Double, maps first char and second char to probability
   {-# UNPACK #-} !ByteArray -- ^ Array of Word8, length 256, acts as map from Word8 to table row/column index
 
+instance Freaky FreqTable where
+  {-# INLINE prob #-} 
+  prob (FreqTable sz square ixs) chrFst chrSnd =
+     let !ixFst = word8ToInt (PM.indexByteArray ixs (word8ToInt chrFst))
+         !ixSnd = word8ToInt (PM.indexByteArray ixs (word8ToInt chrSnd))
+     in PM.indexByteArray square (sz * ixFst + ixSnd)
+
+-- This exists for debugging purposes
 instance P.Show FreqTable where
   show (FreqTable i arr ixs) =
       P.show i ++ "x" ++ show i
@@ -230,31 +238,16 @@ instance P.Show FreqTable where
         then
           let col = ix `mod` i
               extra = if col == (i - 1) then "\n" else "" 
-          in showFloat (indexByteArray arr ix :: Double) ++ " " ++ extra ++ go (ix + 1) 
+          in showFloat (PM.indexByteArray arr ix :: Double) ++ " " ++ extra ++ go (ix + 1) 
         else ""
         where
           !elemSz = P.div (PM.sizeofByteArray arr) (PM.sizeOf (undefined :: Double))
+          showFloat :: P.RealFloat a => a -> String
+          showFloat !x = Numeric.showFFloat (Just 2) x ""
 
-showFloat :: P.RealFloat a => a -> String
-showFloat x = Numeric.showFFloat (Just 2) x ""
-
-instance Freaky FreqTable where
-  {-# INLINE prob #-} 
-  prob (FreqTable sz square ixs) chrFst chrSnd =
-     let !ixFst = word8ToInt (PM.indexByteArray ixs (word8ToInt chrFst))
-         !ixSnd = word8ToInt (PM.indexByteArray ixs (word8ToInt chrSnd))
-     in indexByteArray square (sz * ixFst + ixSnd)
-
-check :: HasCallStack => String -> Bool -> a -> a
-check _ True x = x
-check errMsg False _ = throw (IndexOutOfBounds $ "Data.Primitive.ByteArray." ++ errMsg ++ "\n" ++ prettyCallStack callStack)
-
-indexByteArray :: ByteArray -> Int -> Double
-indexByteArray arr i = check ("indexByteArray: index of out bounds: [index=" ++ P.show i ++ ",size=" ++ P.show elemSz ++ "]")
-  (i >= 0 && i < elemSz)
-  (PM.indexByteArray arr i)
-  where
-    elemSz = P.div (PM.sizeofByteArray arr) (PM.sizeOf (undefined :: Double))
+--------------------------------------------------------------------
+--  Internal Section                                              --
+--------------------------------------------------------------------
 
 word8ToInt :: Word8 -> Int
 word8ToInt !w = P.fromIntegral w
@@ -263,10 +256,6 @@ word8ToInt !w = P.fromIntegral w
 intToWord8 :: Int -> Word8
 intToWord8 !i = P.fromIntegral i
 {-# INLINE intToWord8 #-}
-
---------------------------------------------------------------------
---  Internal Section                                              --
---------------------------------------------------------------------
 
 -- | Optimise a 'Freq' for /O(1)/ read access.
 --
