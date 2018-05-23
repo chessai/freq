@@ -25,8 +25,6 @@ module Freq.Internal
   , train 
   , trainWith
   , trainWithMany
-  , unsafeTrainWith
-  , unsafeTrainWithMany
 
     -- * Using a trained model
   , Freq(..)
@@ -52,7 +50,6 @@ import Data.Semigroup
 import Data.Set (Set)
 import Data.Word (Word8)
 import GHC.Base hiding (empty)
-import GHC.IO (IO(IO))
 import Prelude (FilePath, (+), (*), (-), (/), show, mod)
 
 import qualified Data.ByteString.Char8 as BC
@@ -178,16 +175,6 @@ trainWithMany :: Foldable t
               -> IO FreqTrain    -- ^ Frequency table generated as a result of training, inside of IO.
 trainWithMany !paths = foldMap trainWith paths
 {-# INLINE trainWithMany #-}
-
-unsafeTrainWith :: FilePath  -- ^ Filepath containing training data
-                -> FreqTrain -- ^ Frequency Table generated as a result of training.
-unsafeTrainWith !path = unholyPerformIO (trainWith path)
-{-# INLINE unsafeTrainWith #-}
-
-unsafeTrainWithMany :: Foldable t
-                    => t FilePath -- ^ filepaths containing training data
-                    -> FreqTrain  -- ^ Frequency table generated as a result of training.
-unsafeTrainWithMany !paths = unholyPerformIO (trainWithMany paths)
 
 --------------------------------------------------------------------------------
 
@@ -338,7 +325,3 @@ type Tal = Map Word8 (Map Word8 Double)
 union :: Tal -> Tal -> Tal
 union a b = DMS.unionWith (DMS.unionWith (+)) a b
 {-# INLINE union #-}
-
-unholyPerformIO :: IO a -> a
-unholyPerformIO (IO m) = case m realWorld# of (# _, r #) -> r
-{-# INLINE unholyPerformIO #-}

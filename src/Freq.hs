@@ -12,8 +12,6 @@ module Freq
   , train 
   , trainWith
   , trainWithMany
-  , unsafeTrainWith
-  , unsafeTrainWithMany
 
     -- * Using a trained model
   , tabulate

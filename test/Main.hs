@@ -20,9 +20,8 @@ main = do
   let !freakTable = tabulate freak
   Prelude.putStrLn "done loading frequencies"
   Prelude.putStrLn "now testing with Hedgehog"
-  checkParallel $ Group "Freq Equality"
-    [ ("prop_Equal", prop_Equal freak freakTable)
-    , ("prop_Fail", prop_Fail freak freakTable) 
+  checkParallel $ Group "Freak Equality"
+    [ ("Freak Equality", prop_Equal freak freakTable)
     ]
 
 trainTexts :: [FilePath]
@@ -59,20 +58,6 @@ trainTexts
       , "zenda10"
       ]
 
-type FreqProp = Freq -> FreqTable -> Property
-
-epsilon :: Double
-epsilon = 0.0003
-
-threshold :: Double
-threshold = 5.0
-
-failing :: Double -> Bool
-failing x = x <= threshold - epsilon
-
-passing :: Double -> Bool
-passing x = x > threshold + epsilon
-
 sizedByteString :: Range.Size -> Gen ByteString
 sizedByteString (Range.Size n) = do
   m <- Gen.enum 0 n
@@ -81,33 +66,7 @@ sizedByteString (Range.Size n) = do
       randWord8 :: Gen Word8
       randWord8 = Gen.word8 Range.constantBounded
 
-sizedByteStringRandom :: Range.Size -> Gen ByteString
-sizedByteStringRandom (Range.Size n) = do
-  m <- Gen.enum 0 n
-  fmap B.pack $ Gen.list (Range.constant 0 m) (randWord8)
-    where
-      randWord8 :: Gen Word8
-      randWord8 = Gen.frequency $ fmap (\(x,y) -> (x, pure (c2w y))) $
-        List.zip (List.replicate l 1 :: [Int]) w
-        where
-          w = (['a'..'z'] ++ ['1'..'0'])
-          l = length w
-       
-c2w :: Char -> Word8
-c2w = fromIntegral . ord
-{-# INLINE c2w #-}
-
-prop_Fail :: FreqProp
-prop_Fail f ft =
-  property $ do
-    b <- forAll $ Gen.sized sizedByteStringRandom
-    let fmeasure  = measure f b
-        ftmeasure = measure ft b
-    if failing ftmeasure
-      then success
-      else failure
-
-prop_Equal :: FreqProp
+prop_Equal :: FreqTrain -> Freq -> Property
 prop_Equal f ft =
   property $ do
     b <- forAll $ Gen.sized sizedByteString 
