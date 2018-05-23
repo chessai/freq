@@ -1,8 +1,8 @@
-{ package ? "freq", compiler ? "ghc841" }:
+{ package ? "freq", compiler ? "ghc842" }:
 let fetchNixpkgs = import ./nix/fetchNixpkgs.nix;
     nixpkgs = fetchNixpkgs {
-      rev = "951d6a9f93f95b500f37d3c2dbb27f8b7dc512c3"; 
-      sha256 = "00a7bk1awgl2ndndakc280riq8sj6m0gifl46v0xq034pf8mnliw"; 
+      rev = "1e225e6481530170068103d3916108ba5ee7a9d3"; 
+      sha256 = "xxa7bk1awgl2ndndakc280riq8sj6m0gifl46v0xq034pf8mnliw"; 
       sha256unpacked = "0zzi0sv4a156qkbp3xhb85d5vm127kcxgmsqhfwvwgmlz8fidlnd"; 
     };
     pkgs = import nixpkgs { config = {}; overlays = []; };

@@ -4,6 +4,7 @@
 {-# language MagicHash    #-}
 {-# language NoImplicitPrelude #-}
 {-# language ScopedTypeVariables #-}
+{-# language UnboxedTuples #-}
 {-# language TypeFamilies #-}
 
 {-# OPTIONS_GHC -O2 -Wall #-}
@@ -12,7 +13,7 @@
 
 module Freq.Internal
   ( -- * Frequency table type
-    Freq(..)
+    FreqTrain(..)
 
     -- * Construction
   , empty 
@@ -24,20 +25,21 @@ module Freq.Internal
   , train 
   , trainWith
   , trainWithMany
-    
+  , unsafeTrainWith
+  , unsafeTrainWithMany
+
     -- * Using a trained model
-  , FreqTable(..)
-  , prob
+  , Freq(..)
   , measure
+  , Freaky(prob)
 
     -- * Pretty Printing
-  , prettyFreq
+  , prettyFreqTrain
   ) where
 
 --------------------------------------------------------------------------------
 
 import Control.Applicative (Applicative(..))
---import Control.Exception (throw, ArrayException(..))
 import Control.Monad ((>>))
 import Control.Monad.ST (ST,runST)
 import Data.ByteString.Internal (ByteString(..), w2c)
@@ -50,7 +52,7 @@ import Data.Semigroup
 import Data.Set (Set)
 import Data.Word (Word8)
 import GHC.Base hiding (empty)
---import GHC.Stack
+import GHC.IO (IO(IO))
 import Prelude (FilePath, (+), (*), (-), (/), show, mod)
 
 import qualified Data.ByteString.Char8 as BC
@@ -70,7 +72,7 @@ class Freaky a where
   --   what is the probability that 'c1' follows 'c2'?
   prob :: a -> Word8 -> Word8 -> Double
 
--- | Given a Frequency table and a @ByteString@, @measure@
+-- | Given a Frequency table 'a' and a @ByteString@, @measure@
 --   returns the probability that the @ByteString@ is not
 --   randomised. A higher probability means that it is 
 --   it is less random, while a lower probability indicates
@@ -78,7 +80,7 @@ class Freaky a where
 measure :: Freaky a => a -> BC.ByteString -> Double
 measure _ (PS _ _ 0) = 0
 measure _ (PS _ _ 1) = 0
-measure f !b         = (go 0 0) / (P.fromIntegral (BC.length b - 1))
+measure f !b         = (go 0 0) / (P.fromIntegral l)
   where
     l :: Int
     l = BC.length b - 1
@@ -94,33 +96,28 @@ measure f !b         = (go 0 0) / (P.fromIntegral (BC.length b - 1))
 
 --------------------------------------------------------------------------------
 
--- | A @Freq@ is a digram-based frequency table.
+-- | A @'FreqTrain'@ is a digram-based frequency table.
 --   
---   One can construct a @Freq@ with @train@,
---   @trainWith@, or @trainWithMany@.
+--   One can construct a @'FreqTrain'@ with @'train'@,
+--   @'trainWith'@, or @'trainWithMany'@.
 --
---   One can use a trained @Freq@ with @prob@
---   and @measure@.
+--   One can use a trained @'FreqTrain'@ with @'prob'@
+--   and @'measure'@.
 --   
---   @prob@ and @measure@ are typeclass methods
---   of the @Freaky@ typeclass, of which @Freq@
---   @FreqTable@ have instances, so one can call
---   @measure@ on a @FreqTable@ as well.
---
 --   @'mappend' == '<>'@ will add the values of each
 --   of the matching keys.
 --
---   It is highly recommended to convert a @Freq@
---   to a @FreqTable@ before running the trained model,
---   because @FreqTable@s have /O(1)/ reads, however
---   @FreqTable@s cannot be modified or converted
---   back to a @Freq@.
+--   It is highly recommended to convert a @'FreqTrain'@
+--   to a @'Freq'@ with @'tabulate'@ before using the trained model,
+--   because @'Freq'@s have /O(1)/ reads, however keep in mind
+--   that @'Freq'@s cannot be neither modified nor converted
+--   back to a @'FreqTrain'@.
 --
-newtype Freq = Freq
-  { _getFreq :: Map Word8 (Map Word8 Double) }
+newtype FreqTrain = FreqTrain
+  { _getFreqTrain :: Map Word8 (Map Word8 Double) }
 
-instance Freaky Freq where
-  prob (Freq f) w1 w2 =
+instance Freaky FreqTrain where
+  prob (FreqTrain f) w1 w2 =
     case DMS.lookup w1 f of
       Nothing -> 0
       Just g -> case DMS.lookup w2 g of
@@ -128,36 +125,33 @@ instance Freaky Freq where
         Just weight -> ratio weight g
   {-# INLINE prob #-}
 
-instance Semigroup Freq where
+instance Semigroup FreqTrain where
   {-# INLINE (<>) #-} 
-  (Freq a) <> (Freq b) = Freq $ union a b
+  (FreqTrain a) <> (FreqTrain b) = FreqTrain $ union a b
 
-instance Monoid Freq where
+instance Monoid FreqTrain where
   {-# INLINE mempty #-} 
   mempty  = empty
   {-# INLINE mappend #-} 
-  (Freq a) `mappend` (Freq b) = Freq $ union a b
+  (FreqTrain a) `mappend` (FreqTrain b) = FreqTrain $ union a b
 
 --------------------------------------------------------------------------------
 
 -- | /O(1)/. The empty frequency table.
---
-empty :: Freq
-empty = Freq DMS.empty
+empty :: FreqTrain
+empty = FreqTrain DMS.empty
 {-# INLINE empty #-}
 
 -- | /O(1)/. A Frequency table with a single entry.
---
 singleton :: Word8  -- ^ Outer key
           -> Word8  -- ^ Inner key
           -> Double -- ^ Weight
-          -> Freq   -- ^ The singleton frequency table
-singleton k ka w = Freq $ DMS.singleton k (DMS.singleton ka w)
+          -> FreqTrain   -- ^ The singleton frequency table
+singleton k ka w = FreqTrain $ DMS.singleton k (DMS.singleton ka w)
 {-# INLINE singleton #-}
 
--- | Optimise a 'Freq' for /O(1)/ read access.
---
-tabulate :: Freq -> FreqTable
+-- | Optimise a 'FreqTrain' for /O(1)/ read access.
+tabulate :: FreqTrain -> Freq
 tabulate = tabulateInternal
 {-# INLINE tabulate #-}
  
@@ -166,32 +160,41 @@ tabulate = tabulateInternal
 -- | Given a @ByteString@ consisting of training data,
 --   build a Frequency table.
 train :: BC.ByteString
-      -> Freq
+      -> FreqTrain
 train !b = tally b
 {-# INLINE train #-}
 
 -- | Given a @FilePath@ containing training data, build a
 --   Frequency table inside of the IO monad.
---
 trainWith :: FilePath -- ^ Filepath containing training data
-          -> IO Freq  -- ^ Frequency table generated as a result of training, inside of IO.
+          -> IO FreqTrain  -- ^ Frequency table generated as a result of training, inside of IO.
 trainWith !path = BC.readFile path >>= (pure . tally)
 {-# INLINE trainWith #-}
 
 -- | Given a list of @FilePath@ containing training data,
 --   build a Frequency table inside of the IO monad.
---
-trainWithMany :: [FilePath] -- ^ List of filepaths containing training data
-              -> IO Freq    -- ^ Frequency table generated as a result of training, inside of IO.
+trainWithMany :: Foldable t
+              => t FilePath -- ^ filepaths containing training data
+              -> IO FreqTrain    -- ^ Frequency table generated as a result of training, inside of IO.
 trainWithMany !paths = foldMap trainWith paths
 {-# INLINE trainWithMany #-}
+
+unsafeTrainWith :: FilePath  -- ^ Filepath containing training data
+                -> FreqTrain -- ^ Frequency Table generated as a result of training.
+unsafeTrainWith !path = unholyPerformIO (trainWith path)
+{-# INLINE unsafeTrainWith #-}
+
+unsafeTrainWithMany :: Foldable t
+                    => t FilePath -- ^ filepaths containing training data
+                    -> FreqTrain  -- ^ Frequency table generated as a result of training.
+unsafeTrainWithMany !paths = unholyPerformIO (trainWithMany paths)
 
 --------------------------------------------------------------------------------
 
 -- | Pretty-print a Frequency table.
 --
-prettyFreq :: Freq -> IO ()
-prettyFreq (Freq m)
+prettyFreqTrain :: FreqTrain -> IO ()
+prettyFreqTrain (FreqTrain m)
   = DMS.foldMapWithKey
       (\c1 m' ->
          P.putStrLn (if c1 == 10 then "\\n" else [w2c c1])
@@ -200,24 +203,33 @@ prettyFreq (Freq m)
 
 --------------------------------------------------------------------------------
 
--- | A variant of 'Freq' that holds identical information but
+-- | A variant of @'FreqTrain'@ that holds identical information but
 --   is optimised for reads. There are no operations that
---   append additional information to a 'FreqTable'.
-data FreqTable = FreqTable
-  {-# UNPACK #-} !Int       -- ^ Width and height of square 2d array
-  {-# UNPACK #-} !ByteArray -- ^ Square two-dimensional array of Double, maps first char and second char to probability
-  {-# UNPACK #-} !ByteArray -- ^ Array of Word8, length 256, acts as map from Word8 to table row/column index
+--   append additional information to a @'Freq'@.
+--
+--   Reading from a @'Freq'@ is about 1000 times faster
+--   than from a @'FreqTrain'@ on my machine. It is /highly/
+--   recommended that you use your trained model by first
+--   converted a @'FreqTrain'@ to a @'Freq'@ with @'tabulate'@.
+data Freq = Freq
+  { _Dim :: !Int
+    -- ^ Width and height of square 2d array
+  , _2d  :: !ByteArray
+    -- ^ Square two-dimensional array of Double, maps first char and second char to probability
+  , _Flat :: !ByteArray
+    -- ^ Array of Word8, length 256, acts as map from Word8 to table row/column index
+  }
 
-instance Freaky FreqTable where
+instance Freaky Freq where
   {-# INLINE prob #-} 
-  prob (FreqTable sz square ixs) chrFst chrSnd =
+  prob (Freq sz square ixs) chrFst chrSnd =
      let !ixFst = word8ToInt (PM.indexByteArray ixs (word8ToInt chrFst))
          !ixSnd = word8ToInt (PM.indexByteArray ixs (word8ToInt chrSnd))
      in PM.indexByteArray square (sz * ixFst + ixSnd)
 
 -- This exists for debugging purposes
-instance P.Show FreqTable where
-  show (FreqTable i arr ixs) =
+instance P.Show Freq where
+  show (Freq i arr ixs) =
       P.show i ++ "x" ++ show i
    ++ "\n"
    ++ "\n2D Array: \n"
@@ -257,11 +269,11 @@ intToWord8 :: Int -> Word8
 intToWord8 !i = P.fromIntegral i
 {-# INLINE intToWord8 #-}
 
--- | Optimise a 'Freq' for /O(1)/ read access.
+-- | Optimise a 'FreqTrain' for /O(1)/ read access.
 --
-tabulateInternal :: Freq -> FreqTable
-tabulateInternal (Freq m) = runST comp where
-  comp :: forall s. ST s FreqTable
+tabulateInternal :: FreqTrain -> Freq
+tabulateInternal (FreqTrain m) = runST comp where
+  comp :: forall s. ST s Freq
   comp = do
     let allChars :: Set Word8
         !allChars = S.union (DMS.keysSet m) (foldMap DMS.keysSet m)
@@ -291,18 +303,18 @@ tabulateInternal (Freq m) = runST comp where
         PM.writeByteArray square (sz * (word8ToInt ixFst) + (word8ToInt ixSnd)) r
     frozenIxs <- PM.unsafeFreezeByteArray ixs
     frozenSquare <- PM.unsafeFreezeByteArray square
-    pure (FreqTable sz frozenSquare frozenIxs)
+    pure (Freq sz frozenSquare frozenIxs)
 
 -- | Build a frequency table from a ByteString.
-tally :: BC.ByteString -- ^ ByteString with which the Freq will be built
-      -> Freq          -- ^ Resulting Freq
+tally :: BC.ByteString -- ^ ByteString with which the FreqTrain will be built
+      -> FreqTrain          -- ^ Resulting FreqTrain
 tally (PS _ _ 0) = empty
 tally !b = go 0 mempty
   where
     l :: Int
     l = BC.length b - 1
 
-    go :: Int -> Freq -> Freq
+    go :: Int -> FreqTrain -> FreqTrain
     go !p !fr
       | p == l = fr
       | otherwise =
@@ -327,4 +339,6 @@ union :: Tal -> Tal -> Tal
 union a b = DMS.unionWith (DMS.unionWith (+)) a b
 {-# INLINE union #-}
 
-
+unholyPerformIO :: IO a -> a
+unholyPerformIO (IO m) = case m realWorld# of (# _, r #) -> r
+{-# INLINE unholyPerformIO #-}

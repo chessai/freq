@@ -1,27 +1,28 @@
 {-# OPTIONS_GHC -O2 -Wall #-}
 
 module Freq
-  ( -- * Frequency table type
-    Freq
+  ( -- * Frequency Table Builder (Trainer) Type
+    FreqTrain
     
     -- * Construction
   , empty 
   , singleton
 
-  , tabulate
-
     -- * Training
   , train 
   , trainWith
   , trainWithMany
-    
-    -- * Using a trained model
-  , FreqTable 
-  , prob
-  , measure
+  , unsafeTrainWith
+  , unsafeTrainWithMany
 
+    -- * Using a trained model
+  , tabulate
+  , Freq
+  , measure
+  , prob
+  
     -- * Pretty Printing
-  , prettyFreq
+  , prettyFreqTrain
   ) where
 
 import Freq.Internal
