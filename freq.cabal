@@ -30,7 +30,6 @@ library
     build-depends:         base       >= 4.9 && < 5.0
                          , bytestring 
                          , containers 
-                         , gauge
                          , primitive >= 0.6.1
     exposed-modules:       Freq
                            Freq.Internal 

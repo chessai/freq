@@ -1,7 +1,15 @@
 {-# OPTIONS_GHC -O2 -Wall #-}
 
+{-| A @'Freq'@ assigns to a @'ByteString'@ a randomness
+    probability value of type @'Double'@, indicating  
+    of type @'Double'@. A @'Freq'@ is constructed after
+
+
+
+-}
+
 module Freq
-  ( -- * Frequency Table Builder (Trainer) Type
+  ( -- * Frequency table builder (trainer) type
     FreqTrain
     
     -- * Construction
