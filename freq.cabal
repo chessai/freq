@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------
 
 name:                      freq
-version:                   0.1.0.0
+version:                   0.1.0.2
 build-type:                Simple
 cabal-version:             >= 1.10
 category:                  Data

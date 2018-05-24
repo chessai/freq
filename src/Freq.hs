@@ -48,7 +48,8 @@
   trainTexts :: [FilePath]
   trainText
     = fmap (\x -> "txtdocs/" ++ x ".txt")
-      -- ^ this line just tells us that all
+      -- ^
+      -- | this line just tells us that all
       --   of the training data is in the 'txtdocs'
       --   directory, and has a '.txt' file extension.
         [ "2000010"
@@ -111,32 +112,40 @@
   main :: IO ()
   main = do
     !freak <- trainWithMany trainTexts
-    -- ^ create the trained model
+    -- ^
+    -- | create the trained model
     
     let !freakTable = tabulate freak
-    -- ^ optimise the trained model for
+    -- ^
+    -- | optimise the trained model for
     --   read access
     
     putStrLn "Done loading frequencies."
-    -- ^ let the user known that our model
+    -- ^
+    -- | let the user know that our model
     --   is done training and has finished
     --   optimising into a 'Freq'
     
     forever $ do
-    -- ^ make the following loop forever 
+    -- ^
+    -- | make the following code loop forever 
       
       putStrLn "Enter text:"
-      -- ^ ask the user for some text
+      -- ^
+      -- | ask the user for some text
       
       !bs <- BC.getLine
-      -- ^ bs is the input 'ByteString' to score
+      -- ^
+      -- | bs is the input 'ByteString' to score
       
       let !score = measure freakTable bs
-      -- ^ score of the 'ByteString'!
+      -- ^
+      -- | score of the 'ByteString'!
       
       putStrLn $ "Score: " ++ show score ++ "\n"
         ++ passes score
-      -- ^ print out what the score of the 'ByteString' was,
+      -- ^  
+      -- | print out what the score of the 'ByteString' was,
       --   along with its 'passing status'.
   @
 
@@ -172,15 +181,15 @@
 
     As an example of a real-world use case, I wrote 'freq' to use at my
     workplace (I work at a Network Security company) as a way to score
-    TLDs (top-level domains) according to how random they are. Malicious
-    users spin up fake domains frequently using strings of random characters
-    as the TLD. This can also be used to score Windows executables, since
+    domain names according to how random they are. Malicious
+    users spin up fake domains frequently using strings of random characters.
+    This can also be used to score Windows executables, since
     those follow the same pattern of malicious naming.
 
     An obvious weakness of this library is that it suffers from what can
     be referred to as the "xkcd problem". It can score things such as 'xkcd'
-    poorly, even though they are perfectly legitimate TLDs. The fix I use is
-    to use something like the alexa top 1 million list of TLDs, along with a
+    poorly, even though they are perfectly legitimate domains. The fix I use is
+    to use something like the alexa top 1 million list of domains, along with a
     HashMap(s) for whitelisting/blacklisting.
 
     As a wise man once told me - "And then I freaked it."
