@@ -11,6 +11,13 @@
 
 --------------------------------------------------------------------------------
 
+{-| This is the internal module to 'Freq'.
+    The primary differences are that this
+    module exports the typeclass 'Freaky',
+    as well as the data constructors of
+    'FreqTrain' and 'Freq'.
+-}
+
 module Freq.Internal
   ( -- * Frequency table type
     FreqTrain(..)
@@ -64,16 +71,19 @@ import qualified Prelude as P
 
 --------------------------------------------------------------------------------
 
+-- | @'Freaky'@ is a typeclass that wraps the @'prob'@ function,
+--   which allows for an extensible definition of @'measure'@.
+--
+--   It is used internally.
 class Freaky a where
   -- | Given a Frequency table and characters 'c1' and 'c2',
   --   what is the probability that 'c1' follows 'c2'?
   prob :: a -> Word8 -> Word8 -> Double
 
--- | Given a Frequency table 'a' and a @ByteString@, @measure@
---   returns the probability that the @ByteString@ is not
---   randomised. A higher probability means that it is 
---   it is less random, while a lower probability indicates
---   a higher degree of randomness. The accuracy of @measure@ is is heavily affected by your training data.
+-- | Given a Frequency table and a @'ByteString'@, @'measure'@
+--   returns the probability that the @'ByteString'@ is not
+--   randomised. The accuracy of @'measure'@ is is heavily affected
+--   by your training data.
 measure :: Freaky a => a -> BC.ByteString -> Double
 measure _ (PS _ _ 0) = 0
 measure _ (PS _ _ 1) = 0
@@ -106,7 +116,8 @@ measure f !b         = (go 0 0) / (P.fromIntegral l)
 --
 --   It is highly recommended to convert a @'FreqTrain'@
 --   to a @'Freq'@ with @'tabulate'@ before using the trained model,
---   because @'Freq'@s have /O(1)/ reads, however keep in mind
+--   because @'Freq'@s have /O(1)/ reads as well as significantly
+--   faster constant-time operations, however keep in mind
 --   that @'Freq'@s cannot be neither modified nor converted
 --   back to a @'FreqTrain'@.
 --
@@ -154,31 +165,31 @@ tabulate = tabulateInternal
  
 --------------------------------------------------------------------------------
 
--- | Given a @ByteString@ consisting of training data,
+-- | Given a @'ByteString'@ consisting of training data,
 --   build a Frequency table.
 train :: BC.ByteString
       -> FreqTrain
 train !b = tally b
 {-# INLINE train #-}
 
--- | Given a @FilePath@ containing training data, build a
---   Frequency table inside of the IO monad.
-trainWith :: FilePath -- ^ Filepath containing training data
-          -> IO FreqTrain  -- ^ Frequency table generated as a result of training, inside of IO.
+-- | Given a @'FilePath'@ containing training data, build a
+--   Frequency table inside of the @'IO'@ monad.
+trainWith :: FilePath -- ^ @'FilePath'@ containing training data
+          -> IO FreqTrain  -- ^ Frequency table generated as a result of training, inside of @'IO'@.
 trainWith !path = BC.readFile path >>= (pure . tally)
 {-# INLINE trainWith #-}
 
--- | Given a list of @FilePath@ containing training data,
---   build a Frequency table inside of the IO monad.
+-- | Given a list of @'FilePath'@ containing training data,
+--   build a Frequency table inside of the @'IO'@ monad.
 trainWithMany :: Foldable t
-              => t FilePath -- ^ filepaths containing training data
-              -> IO FreqTrain    -- ^ Frequency table generated as a result of training, inside of IO.
+              => t FilePath -- ^ @'FilePath'@s containing training data
+              -> IO FreqTrain    -- ^ Frequency table generated as a result of training, inside of @'IO'@.
 trainWithMany !paths = foldMap trainWith paths
 {-# INLINE trainWithMany #-}
 
 --------------------------------------------------------------------------------
 
--- | Pretty-print a Frequency table.
+-- | Pretty-print a @'FreqTrain'@.
 --
 prettyFreqTrain :: FreqTrain -> IO ()
 prettyFreqTrain (FreqTrain m)
@@ -191,13 +202,13 @@ prettyFreqTrain (FreqTrain m)
 --------------------------------------------------------------------------------
 
 -- | A variant of @'FreqTrain'@ that holds identical information but
---   is optimised for reads. There are no operations that
---   append additional information to a @'Freq'@.
+--   is optimised for reads. There are no operations that imbue
+--   a @'Freq'@ with additional information.
 --
---   Reading from a @'Freq'@ is about 1000 times faster
---   than from a @'FreqTrain'@ on my machine. It is /highly/
+--   Reading from a @'Freq'@ is orders of magnitude faster
+--   than reading from a @'FreqTrain'@. It is /highly/
 --   recommended that you use your trained model by first
---   converted a @'FreqTrain'@ to a @'Freq'@ with @'tabulate'@.
+--   converting a @'FreqTrain'@ to a @'Freq'@ with @'tabulate'@.
 data Freq = Freq
   { _Dim :: !Int
     -- ^ Width and height of square 2d array

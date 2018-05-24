@@ -11,8 +11,11 @@ license:                   MIT
 license-file:              LICENSE
 homepage:                  https://github.com/chessai/freq
 bug-reports:               https://github.com/chessai/freq/issues
---synopsis:                  
---description:               
+synopsis:
+  Are you ready to get freaky?
+description:
+  This library provides a way to train a model that predicts
+  the "randomness" of an input ByteString.
 extra-source-files:        README.md
 tested-with:               GHC == 8.2.1, GHC == 8.2.2, GHC == 8.4.1, GHC == 8.4.2
 

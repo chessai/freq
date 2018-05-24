@@ -35,20 +35,24 @@ trainTexts
       , "speckldb"
       , "swift-modest-171"
       , "time_machine"
-      --, "top-1m" 
       , "war_peace"
       , "white_fang"
       , "zenda10"
       ]
 
+passes :: Double -> String
+passes x
+  | x < 0.05 = "Too random!"
+  | otherwise = "Looks good to me!"
+
 main :: IO ()
 main = do
   !freak <- trainWithMany trainTexts
   let !freakTable = tabulate freak 
-  putStrLn "done loading frequencies"
-  --putStrLn "now writing to file"
-  --writeFile "ft.txt" (show freakTable)
+  putStrLn "Done loading frequencies"
   forever $ do
-    putStrLn "Enter sample text:"
+    putStrLn "Enter text:"
     !bs <- BC.getLine 
-    putStrLn ("Score: " ++ show (measure freakTable bs))
+    let !score = measure freakTable bs 
+    putStrLn $ "Score: " ++ show score ++ "\n"
+      ++ passes score
