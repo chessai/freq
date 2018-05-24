@@ -1,3 +1,5 @@
+# i need to replace this with fetchFromGitHub now that i'm on nix 2.0
+
 { rev                             # The Git revision of nixpkgs to fetch
 , sha256                          # The SHA256 of the downloaded .tar
 , sha256unpacked                  # The SHA256 of the downloaded .nar

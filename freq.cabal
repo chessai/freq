@@ -70,4 +70,3 @@ executable freq-train
     default-language:      Haskell2010
 
 ---------------------------------------------------------------------
-

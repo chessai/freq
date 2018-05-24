@@ -1,1 +1,1 @@
-(import ./default.nix {}).freq.env
+ (import ./default.nix {}).freq.env
