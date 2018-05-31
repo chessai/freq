@@ -251,13 +251,16 @@ instance P.Show Freq where
           in showFloat (PM.indexByteArray arr ix :: Double) ++ " " ++ extra ++ go (ix + 1) 
         else ""
         where
-          !elemSz = P.div (PM.sizeofByteArray arr) (PM.sizeOf (undefined :: Double))
+          !elemSz = P.div (PM.sizeofByteArray arr) (sizeOf (undefined :: Double))
           showFloat :: P.RealFloat a => a -> String
           showFloat !x = Numeric.showFFloat (Just 2) x ""
 
 --------------------------------------------------------------------
 --  Internal Section                                              --
 --------------------------------------------------------------------
+
+sizeOf :: PM.Prim a => a -> Int
+sizeOf x = I# (PM.sizeOf# x)
 
 word8ToInt :: Word8 -> Int
 word8ToInt !w = P.fromIntegral w
@@ -282,7 +285,7 @@ tabulateInternal (FreqTrain m) = runST comp where
         ixedChars :: [(Word8,Word8)]
         !ixedChars = L.zip (P.enumFrom (0 :: Word8)) (S.toList allChars)
     ixs <- PM.newByteArray 256
-    square <- PM.newByteArray (szSq * PM.sizeOf (undefined :: Double))
+    square <- PM.newByteArray (szSq * sizeOf (undefined :: Double))
     let fillSquare :: Int -> ST s ()
         fillSquare !i = if i < szSq
           then do
