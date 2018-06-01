@@ -1,11 +1,14 @@
 --------------------------------------------------------------------------------
 
-{-# language BangPatterns #-}
-{-# language MagicHash    #-}
-{-# language NoImplicitPrelude #-}
-{-# language ScopedTypeVariables #-}
-{-# language UnboxedTuples #-}
-{-# language TypeFamilies #-}
+{-# language BangPatterns               #-}
+{-# language DeriveDataTypeable         #-}
+{-# language ExplicitNamespaces         #-}
+{-# language GeneralizedNewtypeDeriving #-}
+{-# language MagicHash                  #-}
+{-# language NoImplicitPrelude          #-}
+{-# language ScopedTypeVariables        #-}
+{-# language UnboxedTuples              #-}
+{-# language TypeFamilies               #-}
 
 {-# OPTIONS_GHC -O2 -Wall #-}
 
@@ -44,20 +47,38 @@ module Freq.Internal
 
 --------------------------------------------------------------------------------
 
-import Control.Applicative (Applicative(..))
-import Control.Monad ((>>))
-import Control.Monad.ST (ST,runST)
-import Data.ByteString.Internal (ByteString(..), w2c)
-import Data.Foldable
-import Data.Map.Strict.Internal (Map)
-import Data.Maybe (fromMaybe)
-import Data.Monoid
-import Data.Primitive.ByteArray (ByteArray)
-import Data.Semigroup
-import Data.Set (Set)
-import Data.Word (Word8)
-import GHC.Base hiding (empty)
-import Prelude (FilePath, (+), (*), (-), (/), show, mod)
+import           Prelude
+  ()
+
+import           Control.Applicative (Applicative(pure))
+import           Control.DeepSeq (NFData)
+import           Control.Monad (Monad((>>=)), (>>), forM_)
+import           Control.Monad.ST (ST,runST)
+import           Data.Bool (otherwise)
+import           Data.ByteString.Internal (ByteString(..), w2c)
+import           Data.Data (Data)
+import           Data.Eq (Eq((==)))
+import           Data.Foldable (Foldable(foldMap, sum))
+import           Data.Function ((.), ($))
+import           Data.Functor (fmap)
+import           Data.List ((++))
+import           Data.Map.Strict.Internal (Map)
+import           Data.Maybe (Maybe(Just, Nothing), fromMaybe)
+import           Data.Monoid (Monoid(mempty, mappend))
+import           Data.Ord (Ord(min, (<)))
+import           Data.Primitive.ByteArray (ByteArray)
+import           Data.Semigroup (Semigroup((<>)))
+import           Data.Set (Set)
+import           Data.String (String)
+import           Data.Word (Word8)
+
+import           GHC.Base (Double, Int(I#)) --hiding (empty)
+import           GHC.Err (undefined)
+import           GHC.IO (FilePath, IO)
+import           GHC.Num ((+), (*), (-))
+import           GHC.Read (Read)
+import           GHC.Real ((/), mod)
+import           GHC.Show (Show(show))
 
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Unsafe as BU
@@ -121,8 +142,15 @@ measure f !b         = (go 0 0) / (P.fromIntegral l)
 --   that @'Freq'@s cannot be neither modified nor converted
 --   back to a @'FreqTrain'@.
 --
-newtype FreqTrain = FreqTrain
-  { _getFreqTrain :: Map Word8 (Map Word8 Double) }
+newtype FreqTrain = FreqTrain { _getFreqTrain :: Map Word8 (Map Word8 Double) }
+  deriving
+    ( Data
+    , Eq
+    , NFData
+    , Ord
+    , Read
+    , Show
+    )
 
 instance Freaky FreqTrain where
   prob (FreqTrain f) w1 w2 =
@@ -135,13 +163,13 @@ instance Freaky FreqTrain where
 
 instance Semigroup FreqTrain where
   {-# INLINE (<>) #-} 
-  (FreqTrain a) <> (FreqTrain b) = FreqTrain $ union a b
+  (FreqTrain a) <> (FreqTrain b) = FreqTrain (union a b)
 
 instance Monoid FreqTrain where
   {-# INLINE mempty #-} 
   mempty  = empty
   {-# INLINE mappend #-} 
-  (FreqTrain a) `mappend` (FreqTrain b) = FreqTrain $ union a b
+  (FreqTrain a) `mappend` (FreqTrain b) = FreqTrain (union a b)
 
 --------------------------------------------------------------------------------
 

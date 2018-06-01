@@ -4,3 +4,4 @@ stack.yaml
 .stack-work
 *.ghc*
 *.sw*
+*.local
