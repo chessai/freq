@@ -113,6 +113,9 @@
 --   !freak <- trainWithMany trainTexts
 --   -- ^
 --   -- | create the trained model
+--   -- | Note that we do this strictly,
+--   -- | so that the model is ready to
+--   -- | go when we say it is. 
 --   
 --   let !freakTable = tabulate freak
 --   -- ^
