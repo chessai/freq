@@ -47,11 +47,14 @@
 -- @ 
 -- trainTexts :: [FilePath]
 -- trainText
---   = fmap (\x -> "txtdocs/" ++ x ".txt")
+--   = fmap (\x -> "txtdocs/" ++ x ++ ".txt")
 --     -- ^
 --     -- | this line just tells us that all
 --     --   of the training data is in the 'txtdocs'
 --     --   directory, and has a '.txt' file extension.
+--
+--     -- | These are the text files from which we wish to train.
+--     -- v
 --       [ "2000010"
 --       , "2city10"
 --       , "80day10"
@@ -115,7 +118,8 @@
 --   -- | create the trained model
 --   -- | Note that we do this strictly,
 --   -- | so that the model is ready to
---   -- | go when we say it is. 
+--   -- | go when we intuitively expect it
+--   -- | to be.
 --   
 --   let !freakTable = tabulate freak
 --   -- ^
