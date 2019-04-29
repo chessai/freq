@@ -10,8 +10,6 @@
 {-# language UnboxedTuples              #-}
 {-# language TypeFamilies               #-}
 
-{-# OPTIONS_GHC -O2 -Wall #-}
-
 --------------------------------------------------------------------------------
 
 {-| This is the internal module to 'Freq'.
@@ -54,6 +52,7 @@ import           Control.Applicative (Applicative(pure))
 import           Control.DeepSeq (NFData)
 import           Control.Monad (Monad((>>=)), (>>), forM_)
 import           Control.Monad.ST (ST,runST)
+import           Data.Binary (Binary(..))
 import           Data.Bool (otherwise)
 import           Data.ByteString.Internal (ByteString(..), w2c)
 import           Data.Data (Data)
@@ -66,13 +65,13 @@ import           Data.Map.Strict.Internal (Map)
 import           Data.Maybe (Maybe(Just, Nothing), fromMaybe)
 import           Data.Monoid (Monoid(mempty, mappend))
 import           Data.Ord (Ord(min, (<)))
-import           Data.Primitive.ByteArray (ByteArray)
+import           Data.Primitive.ByteArray (ByteArray,foldrByteArray)
 import           Data.Semigroup (Semigroup((<>)))
 import           Data.Set (Set)
 import           Data.String (String)
 import           Data.Word (Word8)
 
-import           GHC.Base (Double, Int(I#)) --hiding (empty)
+import           GHC.Base (Double, Int(I#), build)
 import           GHC.Err (undefined)
 import           GHC.IO (FilePath, IO)
 import           GHC.Num ((+), (*), (-))
@@ -245,6 +244,22 @@ data Freq = Freq
   , _Flat :: !ByteArray
     -- ^ Array of Word8, length 256, acts as map from Word8 to table row/column index
   }
+  deriving (Eq)
+
+toList :: PM.Prim a => ByteArray -> [a]
+toList xs = build (\c n -> foldrByteArray c n xs)
+
+toDoubles :: ByteArray -> [Double]
+toDoubles = toList
+
+toWord8s :: ByteArray -> [Word8]
+toWord8s = toList
+
+instance Binary Freq where
+  put (Freq dim ds ws) = put (dim,toDoubles ds,toWord8s ws)
+  get = do
+    (dim :: Int,asDoubles :: [Double],asWord8s :: [Word8]) <- get
+    pure (Freq dim (PM.byteArrayFromList asDoubles) (PM.byteArrayFromList asWord8s))
 
 instance Freaky Freq where
   {-# INLINE prob #-} 

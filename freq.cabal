@@ -1,23 +1,29 @@
----------------------------------------------------------------------
-
-name:                      freq
-version:                   0.1.0.4
-build-type:                Simple
-cabal-version:             >= 1.10
-category:                  Data
-author:                    Daniel Cartwright
-maintainer:                dcartwright@layer3com.com
-license:                   MIT
-license-file:              LICENSE
-homepage:                  https://github.com/chessai/freq
-bug-reports:               https://github.com/chessai/freq/issues
+cabal-version: 2.2
+name:
+  freq
+version:
+  0.1.1
+author:
+  chessai
+maintainer:
+  chessai <chessai1996@gmail.com>
+license:
+  MIT
+license-file:
+  LICENSE
+homepage:
+  https://github.com/chessai/freq
+bug-reports:
+  https://github.com/chessai/freq/issues
 synopsis:
   Are you ready to get freaky?
 description:
   This library provides a way to train a model that predicts
   the "randomness" of an input ByteString.
-extra-source-files:        README.md
-tested-with:               GHC == 8.2.1, GHC == 8.2.2, GHC == 8.4.1, GHC == 8.4.2
+extra-source-files:
+  README.md
+tested-with:
+  GHC == 8.2.1, GHC == 8.2.2, GHC == 8.4.1, GHC == 8.4.2
 
 ---------------------------------------------------------------------
 
@@ -29,45 +35,60 @@ source-repository head
 ---------------------------------------------------------------------
 
 library
-    hs-source-dirs:        src 
-    build-depends:         base       >= 4.9 && < 5.0
-                         , bytestring 
-                         , containers 
-                         , deepseq 
-                         , primitive >= 0.6.1
-    exposed-modules:       Freq
-                           Freq.Internal 
-    default-language:      Haskell2010
+  exposed-modules:
+    Freq
+    Freq.Internal  
+  build-depends:
+    , base >= 4.9 && < 4.13
+    , binary >= 0.8 && < 0.11
+    , bytestring >= 0.10 && < 0.11
+    , containers >= 0.5 && < 0.7
+    , deepseq >= 1.4 && < 1.5
+    , primitive >= 0.6.4 && < 0.7
+  hs-source-dirs:
+    src
+  default-language:
+    Haskell2010
+  ghc-options:
+    -Wall
+    -O2
 
 test-suite test
-  type: exitcode-stdio-1.0
-  main-is: Main.hs
-  hs-source-dirs:
-    test
+  type:
+    exitcode-stdio-1.0
+  main-is:
+    Main.hs
   build-depends:
-      base >=4.7 && <5
-    , bytestring 
+    , base
+    , bytestring
     , containers
     , freq
-    , hedgehog 
-  default-language: Haskell2010
+    , hedgehog
+  hs-source-dirs:
+    test
+  default-language:
+    Haskell2010
 
 benchmark bench
-  type: exitcode-stdio-1.0
+  type:
+    exitcode-stdio-1.0
+  main-is:
+    Main.hs
   build-depends:
       base
     , bytestring
     , containers
     , freq
     , gauge
-  default-language: Haskell2010
-  hs-source-dirs: bench
-  main-is: Main.hs
+  hs-source-dirs:
+    bench
+  default-language:
+    Haskell2010
 
-executable freq-train
-    hs-source-dirs:        app
-    build-depends:         base, freq, bytestring, containers
-    main-is:               Main.hs
-    default-language:      Haskell2010
+--executable freq-train
+--    hs-source-dirs:        app
+--    build-depends:         base, freq, bytestring, containers
+--    main-is:               Main.hs
+--    default-language:      Haskell2010
 
 ---------------------------------------------------------------------
