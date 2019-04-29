@@ -268,7 +268,7 @@ instance Freaky Freq where
          !ixSnd = word8ToInt (PM.indexByteArray ixs (word8ToInt chrSnd))
      in PM.indexByteArray square (sz * ixFst + ixSnd)
 
--- This exists for debugging purposes
+-- | This exists for debugging purposes
 instance P.Show Freq where
   show (Freq i arr ixs) =
       P.show i ++ "x" ++ show i
