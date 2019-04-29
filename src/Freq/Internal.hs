@@ -203,7 +203,7 @@ train !b = tally b
 --   Frequency table inside of the @'IO'@ monad.
 trainWith :: FilePath -- ^ @'FilePath'@ containing training data
           -> IO FreqTrain  -- ^ Frequency table generated as a result of training, inside of @'IO'@.
-trainWith !path = BC.readFile path >>= (pure . tally)
+trainWith path = BC.readFile path >>= (pure . tally)
 {-# INLINE trainWith #-}
 
 -- | Given a list of @'FilePath'@ containing training data,
@@ -211,7 +211,7 @@ trainWith !path = BC.readFile path >>= (pure . tally)
 trainWithMany :: Foldable t
               => t FilePath -- ^ @'FilePath'@s containing training data
               -> IO FreqTrain    -- ^ Frequency table generated as a result of training, inside of @'IO'@.
-trainWithMany !paths = foldMap trainWith paths
+trainWithMany paths = foldMap trainWith paths
 {-# INLINE trainWithMany #-}
 
 --------------------------------------------------------------------------------
@@ -248,6 +248,7 @@ data Freq = Freq
 
 toList :: PM.Prim a => ByteArray -> [a]
 toList xs = build (\c n -> foldrByteArray c n xs)
+{-# INLINE toList #-}
 
 toDoubles :: ByteArray -> [Double]
 toDoubles = toList
