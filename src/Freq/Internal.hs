@@ -192,7 +192,7 @@ tabulate = tabulateInternal
  
 --------------------------------------------------------------------------------
 
--- | Given a @'ByteString'@ consisting of training data,
+-- | Given a @'BC.ByteString'@ consisting of training data,
 --   build a Frequency table.
 train :: BC.ByteString
       -> FreqTrain
@@ -352,7 +352,7 @@ tabulateInternal (FreqTrain m) = runST comp where
 
 -- | Build a frequency table from a ByteString.
 tally :: BC.ByteString -- ^ ByteString with which the FreqTrain will be built
-      -> FreqTrain          -- ^ Resulting FreqTrain
+      -> FreqTrain     -- ^ Resulting FreqTrain
 tally (PS _ _ 0) = empty
 tally !b = go 0 mempty
   where
