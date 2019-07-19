@@ -20,6 +20,8 @@ synopsis:
 description:
   This library provides a way to train a model that predicts
   the "randomness" of an input ByteString.
+category:
+  Text,Data
 extra-source-files:
   README.md
 tested-with:
@@ -37,14 +39,14 @@ source-repository head
 library
   exposed-modules:
     Freq
-    Freq.Internal  
+    Freq.Internal
   build-depends:
     , base >= 4.9 && < 4.13
     , binary >= 0.8 && < 0.11
     , bytestring >= 0.10 && < 0.11
     , containers >= 0.5 && < 0.7
     , deepseq >= 1.4 && < 1.5
-    , primitive >= 0.6.4 && < 0.7
+    , primitive >= 0.6.4 && < 0.8
   hs-source-dirs:
     src
   default-language:
